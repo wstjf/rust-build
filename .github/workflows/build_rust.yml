@@ -15,6 +15,11 @@ on:
         description: 'Package name (optional, override auto-detection)'
         required: false
         type: string
+      build_android:
+        description: 'Build for Android'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -26,6 +31,10 @@ jobs:
         run: |
           rustup default stable
           rustup update stable
+          if [ "${{ inputs.build_android }}" = "true" ]; then
+            cargo install cargo-ndk
+            rustup target add aarch64-linux-android
+          fi
 
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
@@ -55,15 +64,19 @@ jobs:
           fi
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
           echo $PACKAGE_NAME
-          echo $ANDROID_NDK_HOME
           
       - name: Build release
         run: |
-          cargo build --release
-          ls target/release/
+          if [ "${{ inputs.build_android }}" = "true" ]; then
+            cargo ndk -t arm64-v8a build --release
+            ls target/aarch64-linux-android/release/
+          else
+            cargo build --release
+            ls target/release/
+          fi
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PACKAGE_NAME }}
-          path: target/release/${{ env.PACKAGE_NAME }}
+          path: ${{ inputs.build_android && 'target/aarch64-linux-android/release/' || 'target/release/' }}${{ env.PACKAGE_NAME }}
