@@ -1,0 +1,56 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_url:
+        description: 'Package download URL'
+        required: true
+        type: string
+      package_password:
+        description: 'Package password (optional)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Install toolchain
+        run: |
+          rustup default stable
+          rustup update stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ""
+          cache-targets: false
+          
+      - name: Download package
+        run: |
+          wget -O source.zip "${{ inputs.package_url }}"
+          
+      - name: Extract package
+        run: |
+          if [ -n "${{ inputs.package_password }}" ]; then
+            unzip -P "${{ inputs.package_password }}" source.zip
+          else
+            unzip source.zip
+          fi
+          
+      - name: Get package name
+        id: get_name
+        run: |
+          PACKAGE_NAME=$(grep -m1 "name" Cargo.toml | cut -d '"' -f2)
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+          
+      - name: Build release
+        run: cargo build --release
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PACKAGE_NAME }}
+          path: target/release/${{ env.PACKAGE_NAME }}
