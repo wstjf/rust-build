@@ -46,9 +46,12 @@ jobs:
         run: |
           PACKAGE_NAME=$(grep -m1 "name" Cargo.toml | cut -d '"' -f2)
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+          echo $PACKAGE_NAME
           
       - name: Build release
-        run: cargo build --release
+        run: |
+          cargo build --release
+          ls target/release/${{ env.PACKAGE_NAME }}
           
       - name: Upload artifact
         uses: actions/upload-artifact@v3
