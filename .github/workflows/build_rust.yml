@@ -50,7 +50,7 @@ jobs:
           
       - name: Build release
         run: |
-          cargo build --release --bin ${{ env.PACKAGE_NAME }}
+          cargo build --release
           ls target/release/
           
       - name: Upload artifact
